@@ -24,11 +24,13 @@ AI Agents are brilliant at single tasks but fragile at scale. When you ask an ag
 This is designed to be a **Drop-in Skill** for any AI Agent project.
 
 ### Option A: Install as a Git Submodule (Recommended)
-This keeps the skill updated with the latest version.
+Use this if you already have an Agent set up.
 
 ```bash
-mkdir -p .agent/skills
+# Run this from your project root
 git submodule add https://github.com/DG10-Agency/Agentic-Batch-Loop-Engine-by-DG10.Agency.git .agent/skills/batch-loop-engine
+
+# Then build the skill
 cd .agent/skills/batch-loop-engine
 npm install
 npm run build
