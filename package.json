@@ -1,7 +1,7 @@
 {
-  "name": "agentic-loop-engine",
-  "version": "1.0.0",
-  "description": "The resilience layer for AI Agents. Orchestrate long-running, multi-step batch workflows with automatic state persistence, error recovery, and concurrency.",
+  "name": "agentic-batch-loop-engine",
+  "version": "1.0.1",
+  "description": "The fault-tolerant loop engine for running massive, multi-step AI agent workflows (SEO, Data, Scraping) without timeouts or memory leaks.",
   "main": "dist/core/engine.js",
   "scripts": {
     "build": "tsc",

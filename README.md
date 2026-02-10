@@ -1,4 +1,4 @@
-# Agentic Loop Engine: Robust Workflow Orchestrator for AI Agents
+# Agentic Batch Loop Engine: Fault-Tolerant Workflow Orchestrator
 
 > **The "Iron Man Suit" for Long-Running Agent Tasks.** State persistence, automatic retries, and clean concurrency for autonomous workflows.
 
