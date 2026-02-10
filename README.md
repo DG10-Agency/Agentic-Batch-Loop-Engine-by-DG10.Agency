@@ -122,7 +122,10 @@ const engine = new LoopEngine({
   concurrency: 5,
 
   // Max Retries: How many times to retry a failed item?
-  maxRetries: 3
+  maxRetries: 3,
+
+  // Timeout: Kill process if it takes longer than 60 seconds
+  itemTimeoutMs: 60000
 });
 ```
 

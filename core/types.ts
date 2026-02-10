@@ -7,6 +7,8 @@ export interface LoopConfig {
   concurrency?: number;
   /** Max retries per item (default: 3) */
   maxRetries?: number;
+  /** Timeout in ms per item. If exceeded, item fails. (default: no timeout) */
+  itemTimeoutMs?: number;
 }
 
 export type ItemStatus = 'pending' | 'processing' | 'completed' | 'failed';
@@ -34,6 +36,6 @@ export interface WorkerContext {
 }
 
 export type WorkerFunction<T = any, R = any> = (
-  item: T, 
+  item: T,
   context: WorkerContext
 ) => Promise<R>;
