@@ -1,0 +1,6 @@
+node_modules
+dist
+checkpoint.json
+*.log
+output/
+.DS_Store

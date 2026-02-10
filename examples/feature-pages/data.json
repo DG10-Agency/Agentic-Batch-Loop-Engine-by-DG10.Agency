@@ -1,0 +1,7 @@
+[
+  { "name": "AI Feature 1", "category": "Automation", "description": "Automates X" },
+  { "name": "AI Feature 2", "category": "Analytics", "description": "Analyzes Y" },
+  { "name": "AI Feature 3", "category": "Reporting", "description": "Reports Z" },
+  { "name": "AI Feature 4", "category": "Integration", "description": "Integrates A" },
+  { "name": "AI Feature 5", "category": "Security", "description": "Secures B" }
+]

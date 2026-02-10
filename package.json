@@ -1,0 +1,29 @@
+{
+  "name": "agentic-loop-engine",
+  "version": "1.0.0",
+  "description": "The resilience layer for AI Agents. Orchestrate long-running, multi-step batch workflows with automatic state persistence, error recovery, and concurrency.",
+  "main": "dist/core/engine.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/core/engine.js",
+    "example:features": "tsx examples/feature-pages/run.ts"
+  },
+  "keywords": [
+    "ai-agent",
+    "autonomous-agent",
+    "batch-processing",
+    "workflow-orchestrator",
+    "resilience",
+    "task-queue",
+    "automation",
+    "loop"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
