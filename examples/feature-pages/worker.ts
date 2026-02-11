@@ -1,7 +1,11 @@
 import { WorkerFunction, WorkerContext } from '../../core/types.js';
 import { FeatureInput, ResearchResult, ContentDraft, PageResult } from './types.js';
+import { LLMClient } from '../../core/llm.js'; // Import the new AI Brain
 import * as fs from 'fs';
 import * as path from 'path';
+
+// Initialize the AI Brain
+const ai = new LLMClient({ model: 'gpt-4o' }); // Uses OPENAI_API_KEY env var
 
 // --- Simulation Helpers ---
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -10,9 +14,11 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function roleSEOSpecialist(feature: FeatureInput, log: (msg: string) => void): Promise<ResearchResult> {
     log(`[SEO Role] Analyzing keywords for "${feature.name}"...`);
-    await delay(500); // Simulate API call
 
-    // In a real agent, this would call a search tool or LLM
+    // REAL WORLD: await ai.generate(`Find high volume keywords for: ${feature.name}`);
+    // For demo speed, we simulate:
+    await delay(200);
+
     return {
         keywords: [`${feature.name} software`, `best ${feature.name} tool`, `${feature.category} automation`],
         competitors: ['CompetitorA', 'CompetitorB'],
@@ -22,16 +28,62 @@ async function roleSEOSpecialist(feature: FeatureInput, log: (msg: string) => vo
 
 async function roleCopywriter(feature: FeatureInput, research: ResearchResult, log: (msg: string) => void): Promise<ContentDraft> {
     log(`[Copywriter Role] Drafting content based on UVP: "${research.uniqueValueProp}"...`);
-    await delay(500);
 
-    return {
-        title: `${feature.name} - The Ultimate Solution`,
-        metaDescription: `Discover how our ${feature.name} can revolutionize your ${feature.category}.`,
-        heroHeadline: `Master Your ${feature.category} with ${feature.name}`,
-        heroSubheadline: research.uniqueValueProp,
-        benefits: ['Save Time', 'Increase Efficiency', 'Reduce Errors'],
-        faq: [{ question: 'Is it free?', answer: 'Yes, initially.' }]
-    };
+    // --- REAL AI GENERATION ---
+    // This is where we use the "AI Brain" to write the copy.
+    let contentJson: string;
+    try {
+        const prompt = `
+      You are a Senior Copywriter with 20 years experience.
+      Write a landing page copy for a feature called "${feature.name}".
+      
+      Context:
+      - Category: ${feature.category}
+      - UVP: ${research.uniqueValueProp}
+      - Keywords: ${research.keywords.join(', ')}
+
+      Return ONLY a JSON object with this structure:
+      {
+        "title": "SEO Title",
+        "metaDescription": "Meta Description",
+        "heroHeadline": "Punchy Headline",
+        "heroSubheadline": "Compelling Subhead",
+        "benefits": ["Benefit 1", "Benefit 2", "Benefit 3"],
+        "faq": [{"question": "Q1", "answer": "A1"}]
+      }
+    `;
+
+        // If we have an API Key, use it. Otherwise, fall back to simulation for the user's dry run.
+        if (process.env.OPENAI_API_KEY) {
+            contentJson = await ai.generate(prompt, "You are a JSON-only response bot.");
+            // Strip markdown code blocks if present
+            contentJson = contentJson.replace(/```json/g, '').replace(/```/g, '');
+        } else {
+            log("[AI Brain] No API Key found, using template...");
+            await delay(500);
+            contentJson = JSON.stringify({
+                title: `${feature.name} - The Ultimate Solution`,
+                metaDescription: `Discover how our ${feature.name} can revolutionize your ${feature.category}.`,
+                heroHeadline: `Master Your ${feature.category} with ${feature.name}`,
+                heroSubheadline: research.uniqueValueProp,
+                benefits: ['Save Time', 'Increase Efficiency', 'Reduce Errors'],
+                faq: [{ question: 'Is it free?', answer: 'Yes, initially.' }]
+            });
+        }
+
+        return JSON.parse(contentJson);
+
+    } catch (err: any) {
+        log(`[Copywriter Error] ${err.message}. Falling back to template.`);
+        return {
+            title: `${feature.name} [Fallback]`,
+            metaDescription: `Description for ${feature.name}`,
+            heroHeadline: `Feature: ${feature.name}`,
+            heroSubheadline: research.uniqueValueProp,
+            benefits: [],
+            faq: []
+        };
+    }
 }
 
 async function roleDeveloper(feature: FeatureInput, content: ContentDraft, log: (msg: string) => void): Promise<string> {
