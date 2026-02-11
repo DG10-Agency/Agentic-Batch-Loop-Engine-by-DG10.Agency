@@ -1,54 +1,177 @@
 ---
 name: Autonomous Loop Engine
-description: A robust runtime environment for executing long-running, repetitive agent tasks with state persistence and error recovery.
+description: A fault-tolerant batch processing engine for long-running agent tasks. Handles state persistence, retries, concurrency, and crash recovery.
 ---
 
 # Autonomous Loop Engine
 
-use this skill when you need to perform a task on a list of items (e.g., "Generate 25 pages", "Process 100 CSV rows").
-It handles **state persistence**, **retries**, and **logging** automatically.
+Use this skill when you need to perform a repeating task across many items (files, records, URLs, etc.) with resilience. The engine handles **state persistence**, **retries**, **concurrency**, and **crash recovery** so you can focus on the logic.
 
-## Usage
+## When to Use This Skill
 
-1.  **Prepare Data**: Create a JSON file with your input list (e.g., `data.json`).
-2.  **Write Worker**: Create a TypeScript file (e.g., `worker.ts`) that exports a default async function.
-3.  **Run**: Use the `run_command` tool to execute the engine.
+- "Audit all 500 files in this project"
+- "Generate landing pages for these 25 features"
+- "Scrape data from these 100 URLs"
+- "Process every row in this CSV"
 
-### The Worker Function
+## Architecture
 
-The worker function should focus on **one single item**.
-It receives the `item` data and a `context` object for logging.
-
-```typescript
-// worker.ts
-import { WorkerFunction } from '../../core/types';
-
-const worker: WorkerFunction = async (item, context) => {
-  context.log(`Starting work on ${item.name}`);
-  
-  // Do work...
-  // You can use the 'browser' tool implicitly via Puppeteer if needed
-  // or just perform file operations / API calls.
-  
-  return { result: "Done" };
-};
-
-export default worker;
+```
+YOU (the Agent) = The Brain (decides WHAT to do)
+Loop Engine     = The Body (does it reliably, without forgetting)
 ```
 
-### Running the Engine
+**You do NOT hardcode logic into the engine.** You create a worker script in the USER's project and the engine runs it.
 
-You will typically create a small "runner" script to start the engine, or use a standard CLI wrapper (to be implemented).
+## How to Use (Step by Step)
 
-Example Runner:
+### Phase 1: Understand the Task
+Before writing any code, analyze what the user wants:
+- What is the **unit of work**? (one file, one URL, one record)
+- What is the **input source**? (directory scan, database, JSON file, CSV)
+- What **preprocessing** is needed? (detect tech stack, research, etc.)
+
+### Phase 2: Research (if needed)
+For intelligent tasks like security audits, do your research FIRST:
+1. Read `package.json`, `tsconfig.json`, framework configs to detect the tech stack
+2. Use your search tools to find known vulnerabilities for that stack
+3. Build a checklist of what to look for
+
+### Phase 3: Generate Input Data
+Create a `data.json` in the USER's project (NOT inside this skill folder):
+
 ```typescript
-import { LoopEngine } from '../../core/engine';
-import worker from './worker';
+// Example: For a file-based task, scan the directory
+import * as fs from 'fs';
+import * as path from 'path';
+
+function scanProject(dir: string, extensions: string[]): any[] {
+  const results: any[] = [];
+  // Walk directory recursively
+  // Filter by extensions (.ts, .tsx, .js, etc.)
+  // Exclude: node_modules, .next, dist, .git, public, *.css, *.svg, *.png
+  // Categorize by risk: api routes = critical, middleware = critical, pages = medium
+  return results;
+}
+```
+
+### Phase 4: Write the Worker
+Create a worker in the USER's project directory:
+
+```
+{user_project}/
+├── scripts/
+│   └── {task-name}/
+│       ├── worker.ts      ← Your worker logic
+│       ├── run.ts          ← Entry point
+│       ├── data.json       ← Generated input
+│       └── checkpoint.json ← Auto-created by engine
+```
+
+The worker handles ONE item:
+
+```typescript
+import { WorkerFunction } from '{path-to-skill}/core/types';
+
+export const worker: WorkerFunction<ItemType> = async (item, ctx) => {
+  ctx.log(`Processing: ${item.name}`);
+
+  // Your logic here:
+  // - Read a file
+  // - Call an API
+  // - Run analysis
+  // - Write output
+
+  return { result: "done", findings: [] };
+};
+```
+
+### Phase 5: Write the Runner
+
+```typescript
+import { LoopEngine } from '{path-to-skill}/core/engine';
+import { worker } from './worker';
 
 const engine = new LoopEngine({
-  inputPath: './data.json',
-  checkpointPath: './checkpoint.json'
+  inputPath: './scripts/{task-name}/data.json',
+  checkpointPath: './scripts/{task-name}/checkpoint.json',
+  concurrency: 3,    // parallel workers
+  maxRetries: 2,      // retry failed items
+  itemTimeoutMs: 30000 // 30s timeout per item
 });
 
 engine.run(worker);
+```
+
+### Phase 6: Execute
+```bash
+npx tsx scripts/{task-name}/run.ts
+```
+
+## Important Rules
+
+1. **NEVER modify files inside this skill folder.** Create workers in the USER's project.
+2. **The worker must be idempotent.** Running the same item twice should produce the same result.
+3. **Use `ctx.log()` liberally.** All logs are saved per-item in `checkpoint.json`.
+4. **If the process crashes, just run it again.** The engine resumes from where it left off.
+5. **Keep workers focused.** One worker = one responsibility. Chain multiple engine runs for multi-phase workflows.
+
+## Example Patterns
+
+### Pattern A: File Audit
+```
+Phase 1: Detect tech stack from package.json
+Phase 2: Research known vulnerabilities for that stack
+Phase 3: Scan project → generate data.json with file paths
+Phase 4: Worker reads each file, checks against vulnerability list
+Phase 5: Output findings to security-report.json
+```
+
+### Pattern B: Content Generation
+```
+Phase 1: Get list of topics/features
+Phase 2: Research SEO keywords for each
+Phase 3: Create data.json with topics + keywords
+Phase 4: Worker generates content for each topic
+Phase 5: Output files to output/ directory
+```
+
+### Pattern C: Data Migration
+```
+Phase 1: Export records from source DB
+Phase 2: Create data.json with records
+Phase 3: Worker transforms and inserts each record into target DB
+Phase 4: checkpoint.json tracks which records are migrated
+```
+
+## Reference: Core API
+
+```typescript
+// Types
+interface LoopConfig {
+  inputPath: string;        // Path to JSON array of items
+  checkpointPath: string;   // Path to save progress
+  concurrency?: number;     // Parallel workers (default: 1)
+  maxRetries?: number;      // Retries per item (default: 3)
+  itemTimeoutMs?: number;   // Timeout per item in ms
+}
+
+// Worker signature
+type WorkerFunction<T, R> = (item: T, context: WorkerContext) => Promise<R>;
+
+// Context provided to each worker
+interface WorkerContext {
+  log: (message: string) => void;
+}
+```
+
+## Reference: LLM Client (Optional)
+
+If your worker needs AI generation, use the built-in client:
+
+```typescript
+import { LLMClient } from '{path-to-skill}/core/llm';
+const ai = new LLMClient(); // Auto-detects environment credentials
+
+const result = await ai.generate("Write a tagline for X");
 ```

@@ -1,8 +1,11 @@
 import * as https from 'https';
 
 export interface LLMConfig {
+    /** Override the API Key. Defaults to process.env.OPENAI_API_KEY, ANTHROPIC_API_KEY, etc. */
     apiKey?: string;
+    /** Override the Base URL. Defaults to https://api.openai.com/v1 or process.env.LLM_BASE_URL */
     baseURL?: string;
+    /** Override the Model. Defaults to 'gpt-4o' or process.env.LLM_MODEL */
     model?: string;
 }
 
