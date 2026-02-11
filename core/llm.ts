@@ -31,7 +31,7 @@ export class LLMClient {
         return this.chat(messages);
     }
 
-    async chat(messages: { role: string; content: string }[]): Promise<string> {
+    async chat(messages: { role: string; content: string }[], retries = 3): Promise<string> {
         const url = new URL(`${this.baseURL}/chat/completions`);
 
         const body = JSON.stringify({
@@ -48,11 +48,15 @@ export class LLMClient {
             }
         };
 
-        return new Promise((resolve, reject) => {
+        const executeRequest = () => new Promise<string>((resolve, reject) => {
             const req = https.request(url, options, (res) => {
                 let data = '';
                 res.on('data', (chunk) => data += chunk);
                 res.on('end', () => {
+                    if (res.statusCode === 429 || (res.statusCode && res.statusCode >= 500)) {
+                        reject(new Error(`RATE_LIMIT_OR_SERVER_ERROR:${res.statusCode}`));
+                        return;
+                    }
                     if (res.statusCode && res.statusCode >= 400) {
                         reject(new Error(`LLM Error (${res.statusCode}): ${data}`));
                         return;
@@ -71,5 +75,21 @@ export class LLMClient {
             req.write(body);
             req.end();
         });
+
+        for (let i = 0; i <= retries; i++) {
+            try {
+                return await executeRequest();
+            } catch (err: any) {
+                const isRetryable = err.message.includes('RATE_LIMIT_OR_SERVER_ERROR') || err.code === 'ECONNRESET';
+                if (isRetryable && i < retries) {
+                    const delay = Math.pow(2, i) * 1000; // Exponential backoff: 1s, 2s, 4s
+                    console.log(`⚠️ LLM Rate Limit/Error (Attempt ${i + 1}/${retries + 1}). Retrying in ${delay}ms...`);
+                    await new Promise(res => setTimeout(res, delay));
+                    continue;
+                }
+                throw err;
+            }
+        }
+        throw new Error('LLM Max Retries Exceeded');
     }
 }
