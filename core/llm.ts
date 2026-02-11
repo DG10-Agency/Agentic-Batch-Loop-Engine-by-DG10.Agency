@@ -12,13 +12,15 @@ export class LLMClient {
     private model: string;
 
     constructor(config: LLMConfig = {}) {
-        this.apiKey = config.apiKey || process.env.OPENAI_API_KEY || '';
-        this.baseURL = config.baseURL || 'https://api.openai.com/v1';
-        this.model = config.model || 'gpt-4o';
+        // Automatically detect environment credentials
+        this.apiKey = config.apiKey ||
+            process.env.OPENAI_API_KEY ||
+            process.env.ANTHROPIC_API_KEY ||
+            process.env.GEMINI_API_KEY || '';
 
-        if (!this.apiKey) {
-            console.warn('⚠️ Warning: No API Key provided for LLMClient. Calls will likely fail unless using a local unauthenticated model.');
-        }
+        // Default to OpenAI-compatible endpoint (which most integrated environments proxy)
+        this.baseURL = config.baseURL || process.env.LLM_BASE_URL || 'https://api.openai.com/v1';
+        this.model = config.model || process.env.LLM_MODEL || 'gpt-4o';
     }
 
     async generate(prompt: string, systemPrompt?: string): Promise<string> {

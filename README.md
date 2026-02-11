@@ -68,23 +68,19 @@ The orchestrator that manages the queue, retries, and state file.
 
 ---
 
-### 4. Giving it a "Brain" (AI Integration)
-The engine includes a simple `LLMClient` to help you generate content.
+### 4. Giving it a "Brain" (Integrated AI)
+The engine includes a **Zero-Config LLM Client** that automatically uses your environment's AI credentials (Cursor, Antigravity, or standard Env Vars).
 
-1.  Create a `.env` file in your project root:
-    ```
-    OPENAI_API_KEY=sk-...
-    ```
-2.  Import `LLMClient` in your worker:
-    ```typescript
-    import { LLMClient } from './core/llm';
-    const ai = new LLMClient(); // Reads from env automatically
+```typescript
+import { LLMClient } from './core/llm';
+const ai = new LLMClient(); // Automatically connects to the environment
 
-    export const myWorker = async (item, ctx) => {
-      const copy = await ai.generate(`Write a tagline for ${item.name}`);
-      ctx.log(`Generated: ${copy}`);
-    };
-    ```
+export const myWorker = async (item, ctx) => {
+  // Generate creative content on the fly
+  const copy = await ai.generate(`Write a tagline for ${item.name}`);
+  ctx.log(`Generated: ${copy}`);
+};
+```
 
 ---
 
