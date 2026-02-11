@@ -118,36 +118,100 @@ npx tsx scripts/{task-name}/run.ts
 
 ## Example Patterns
 
-### Pattern A: File Audit
+### Pattern A: Security Audit
 ```
-Phase 1: Detect tech stack from package.json
-Phase 2: Research known vulnerabilities for that stack
-Phase 3: Scan project → generate data.json with file paths
-Phase 4: Worker reads each file, checks against vulnerability list
-Phase 5: Output findings to security-report.json
+Phase 1: Read package.json → detect stack (Next.js, Supabase, etc.)
+Phase 2: Search web for "Next.js CVEs 2015-2025", "Supabase vulnerabilities"
+Phase 3: Scan project with scanner.ts → data.json (500+ files, sorted by risk)
+Phase 4: Worker reads each file → checks for SQL injection, XSS, hardcoded secrets, missing auth
+Phase 5: Output security-report.json
 ```
 
-### Pattern B: Content Generation
+### Pattern B: Content Generation (Multi-Role)
 ```
-Phase 1: Get list of topics/features
-Phase 2: Research SEO keywords for each
+Phase 1: Get list of features/topics
+Phase 2: Research SEO keywords for each via web search
 Phase 3: Create data.json with topics + keywords
-Phase 4: Worker generates content for each topic
-Phase 5: Output files to output/ directory
+Phase 4: Worker runs: SEO Research → Copywriting → Code Generation → QA
+Phase 5: Output files + database SQL
 ```
 
-### Pattern C: Data Migration
+### Pattern C: SEO Audit
 ```
-Phase 1: Export records from source DB
-Phase 2: Create data.json with records
-Phase 3: Worker transforms and inserts each record into target DB
-Phase 4: checkpoint.json tracks which records are migrated
+Phase 1: Discover all page routes (scan app/ directory)
+Phase 2: Create data.json with routes
+Phase 3: Worker checks each page for: meta title, description, h1, alt text, canonical, Open Graph
+Phase 4: Output seo-report.json
+```
+
+### Pattern D: Internationalization (i18n)
+```
+Phase 1: Scan all .tsx files for hardcoded strings
+Phase 2: Worker extracts strings → translates via LLM → writes to locale files
+Phase 3: Output en.json, es.json, fr.json, etc.
+```
+
+### Pattern E: Database Migration
+```
+Phase 1: Export records from source DB → data.json
+Phase 2: Worker transforms each record → validates → inserts into target DB
+Phase 3: Checkpoint tracks which records migrated (resume on connection drop)
+```
+
+### Pattern F: API Endpoint Testing
+```
+Phase 1: Scan all api/ routes → data.json
+Phase 2: Worker sends test payloads (GET, POST, PUT, DELETE)
+Phase 3: Verify status codes, response shapes, auth guards
+Phase 4: Output api-test-report.json
+```
+
+### Pattern G: Accessibility Audit (WCAG)
+```
+Phase 1: Scan all components/pages
+Phase 2: Worker checks: aria labels, color contrast, keyboard nav, focus, alt text
+Phase 3: Output a11y-report.json with WCAG violation levels
+```
+
+### Pattern H: Code Refactoring at Scale
+```
+Phase 1: Scan files matching old pattern (deprecated API, old import)
+Phase 2: Worker finds old pattern → generates replacement via LLM → applies patch
+Phase 3: Output refactor-log.json + modified files
+```
+
+### Pattern I: Screenshot Generation
+```
+Phase 1: List all page routes
+Phase 2: Worker launches browser → navigates → takes screenshot → saves to screenshots/
+Phase 3: Output screenshot library (use concurrency: 3, timeout: 30s per page)
+```
+
+### Pattern J: Email Campaign
+```
+Phase 1: Load leads from CRM/CSV → data.json
+Phase 2: Worker personalizes content → sends via API → logs status
+Phase 3: Checkpoint tracks sent/failed (resume after rate limit)
+Phase 4: Output campaign-report.json
+```
+
+### Pattern K: Documentation Generation
+```
+Phase 1: Scan all exported functions/components
+Phase 2: Worker reads function → generates JSDoc/README via LLM → writes to docs/
+Phase 3: Output auto-generated API documentation
+```
+
+### Pattern L: Performance Profiling
+```
+Phase 1: List all page routes
+Phase 2: Worker runs Lighthouse/custom metrics → measures load time, CLS, LCP
+Phase 3: Output performance-report.json with scores per page
 ```
 
 ## Reference: Core API
 
 ```typescript
-// Types
 interface LoopConfig {
   inputPath: string;        // Path to JSON array of items
   checkpointPath: string;   // Path to save progress
@@ -156,18 +220,31 @@ interface LoopConfig {
   itemTimeoutMs?: number;   // Timeout per item in ms
 }
 
-// Worker signature
 type WorkerFunction<T, R> = (item: T, context: WorkerContext) => Promise<R>;
 
-// Context provided to each worker
 interface WorkerContext {
   log: (message: string) => void;
 }
 ```
 
-## Reference: LLM Client (Optional)
+## Reference: File Scanner
 
-If your worker needs AI generation, use the built-in client:
+```typescript
+import { scanProject, generateInputFile } from '{path-to-skill}/core/scanner';
+
+const files = scanProject({
+  rootDir: '/path/to/project',
+  extensions: ['.ts', '.tsx', '.js', '.jsx'],
+  excludeDirs: ['test', 'mocks'],       // Added to defaults
+  criticalDirs: ['payments', 'billing']  // Added to defaults
+});
+
+generateInputFile(files, './data.json');
+// Output: Scanned 523 files → data.json
+//   Critical: 47, High: 89, Medium: 312, Low: 75
+```
+
+## Reference: LLM Client
 
 ```typescript
 import { LLMClient } from '{path-to-skill}/core/llm';
@@ -175,3 +252,4 @@ const ai = new LLMClient(); // Auto-detects environment credentials
 
 const result = await ai.generate("Write a tagline for X");
 ```
+
