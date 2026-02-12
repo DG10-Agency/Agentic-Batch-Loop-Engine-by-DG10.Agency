@@ -119,7 +119,48 @@ export const myWorker = async (item, ctx) => {
     ```
 3.  **Benefit**: If the AI hallucinates or errors on Topic #12, the engine catches it, logs the error, and moves to Topic #13. You can retry #12 later.
 
-### Scenario C: Browser Automation (QA / Scraping)
+### Scenario C: Advanced Security Audit (500+ Files)
+*Ideal for: Code Audits, Migration Analysis, Refactoring.*
+
+This engine includes a **Smart File Scanner** (`core/scanner.ts`) that builds the input list for you.
+
+1.  **Phase 1: Research**: The agent first scans `package.json` to detect the stack (e.g., Next.js, Supabase) and searches for relevant CVEs.
+2.  **Phase 2: Scan**: 
+    ```typescript
+    import { scanProject, generateInputFile } from './core/scanner';
+    
+    const files = scanProject({
+      rootDir: './src',
+      // Auto-excludes node_modules, .next, etc.
+      extensions: ['.ts', '.tsx', '.js'], 
+      // Prioritize these as 'critical'
+      criticalDirs: ['api', 'auth', 'middleware'] 
+    });
+    
+    generateInputFile(files, './data.json'); 
+    // Output: data.json with 500 items, sorted by risk (Critical -> High -> Low)
+    ```
+3.  **Phase 3: Worker**: 
+    The worker reads each file and checks for vulnerabilities (SQLi, XSS, Secrets), using the `LLMClient` for deep analysis if needed.
+    ```typescript
+    export const auditWorker = async (fileItem, ctx) => {
+      const code = fs.readFileSync(fileItem.path, 'utf-8');
+      
+      // 1. Static Analysis (Regex for secrets, hardcoded values)
+      const secretLeaks = detectSecrets(code);
+      
+      // 2. Semantic Analysis (AI)
+      let aiFindings = [];
+      if (fileItem.category === 'critical') {
+         aiFindings = await ai.analyze(code, "Find security vulnerabilities in this API route");
+      }
+      
+      return { secrets: secretLeaks, risks: aiFindings };
+    };
+    ```
+4.  **Result**: A robust `security-report.json` covering every single source file, with no timeouts.
+
+### Scenario D: Browser Automation (QA / Scraping)
 *Ideal for: Verifying links, taking screenshots, scraping data.*
 
 1.  **Prepare Data**: A list of URLs.
