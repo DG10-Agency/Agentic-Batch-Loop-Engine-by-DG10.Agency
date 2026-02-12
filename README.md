@@ -12,10 +12,11 @@ AI Agents are brilliant at single tasks but fragile at scale. When you ask an ag
 **Agentic Loop Engine** is a lightweight, drop-in runtime that gives your agent a **Resilient Memory**. It manages the "boring" parts of batch processing so your agent can focus on the comprehensive logic.
 
 ### Key Features
-- **Context Isolation**: Runs each item in a clean scope. Zero memory leaks.
-- **Auto-Persistence**: Saves state (`checkpoint.json`) after *every* item. Crashed? Resume instantly.
-- **Smart Concurrency**: Process multiple items in parallel with a simple config.
-- **Observability**: Structured logs for success, failure, and retries.
+*   🚀 **Performance First**: Zero timeouts, zero memory leaks. Built for 1,000+ items.
+*   🧠 **Prompt Library**: [100+ Starter Scenarios](file:///d:/Experiments/.agent/skills/loop-engine/SCENARIOS.md) for Security, SEO, and scaling.
+*   🤖 **AI Native**: Works with your Agent's quota. No API keys required.
+*   🛡️ **Atomic & Safe**: Workers fail? The engine retries. You stop it? It resumes from the exact same spot.
+*   📂 **Smart Scanner**: Intelligently build your batch lists from project files.
 
 ---
 
