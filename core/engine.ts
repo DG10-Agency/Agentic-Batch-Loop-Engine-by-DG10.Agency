@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { LoopConfig, BatchItem, Checkpoint, WorkerFunction, WorkerContext } from './types.js';
 import { Logger } from './logger.js';
+import { AgentBridgeError } from './llm.js';
 
 export class LoopEngine<T = any> {
     private config: LoopConfig;
@@ -31,7 +32,12 @@ export class LoopEngine<T = any> {
 
         this.logger.log('Starting new job...');
         // Load input data
-        const inputData = JSON.parse(fs.readFileSync(this.config.inputPath, 'utf-8'));
+        let inputData = [];
+        if (this.config.inputData) {
+            inputData = this.config.inputData;
+        } else if (this.config.inputPath) {
+            inputData = JSON.parse(fs.readFileSync(this.config.inputPath, 'utf-8'));
+        }
 
         return {
             jobId: `job-${Date.now()}`,
@@ -57,6 +63,7 @@ export class LoopEngine<T = any> {
 
         const pendingItems = this.checkpoint.items.filter(item => {
             if (item.status === 'completed') return false;
+            if (item.status === 'awaiting_agent') return false; // Already paused for agent
             if (item.status === 'failed' && (item.attempts >= (this.config.maxRetries || 3))) return false;
             return true;
         });
@@ -83,7 +90,12 @@ export class LoopEngine<T = any> {
         await Promise.all(activePromises);
 
         this.logger.log('Job finished.');
-        this.logger.log(`Completed: ${this.checkpoint.completedCount}, Failed: ${this.checkpoint.failedCount}`);
+        const awaiting = this.checkpoint.items.filter(i => i.status === 'awaiting_agent').length;
+        this.logger.log(`Completed: ${this.checkpoint.completedCount}, Failed: ${this.checkpoint.failedCount}, Awaiting Agent: ${awaiting}`);
+
+        if (awaiting > 0) {
+            this.logger.log(`📢 ${awaiting} items are waiting for AI thinking. I (the Agent) will fulfill them now.`);
+        }
     }
 
     private async processItem(item: BatchItem<T>, worker: WorkerFunction<T>) {
@@ -102,7 +114,17 @@ export class LoopEngine<T = any> {
         };
 
         try {
-            const result = await worker(item.data, itemLogger);
+            // Create a promise that rejects after timeout
+            let workerPromise = worker(item.data, itemLogger);
+
+            if (this.config.itemTimeoutMs && this.config.itemTimeoutMs > 0) {
+                const timeoutPromise = new Promise<any>((_, reject) => {
+                    setTimeout(() => reject(new Error(`Operation timed out after ${this.config.itemTimeoutMs}ms`)), this.config.itemTimeoutMs);
+                });
+                workerPromise = Promise.race([workerPromise, timeoutPromise]);
+            }
+
+            const result = await workerPromise;
 
             item.status = 'completed';
             item.output = result;
@@ -110,17 +132,25 @@ export class LoopEngine<T = any> {
             this.logger.log(`Item ${item.id} COMPLETED.`);
 
         } catch (error: any) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            this.logger.error(`Item ${item.id} FAILED: ${errorMessage}`);
+            if (error instanceof AgentBridgeError) {
+                this.logger.log(`Item ${item.id} transitioned to AWAITING_AGENT (recorded brain request).`);
+                item.status = 'awaiting_agent';
+                item.pendingPrompt = error.messages;
+                // Don't count as a failed attempt since it just needs the agent to step in
+                item.attempts--;
+            } else {
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                this.logger.error(`Item ${item.id} FAILED: ${errorMessage}`);
 
-            item.lastError = errorMessage;
-            item.status = 'failed';
-            // If we haven't hit max retries, it stays 'failed' but might be picked up next run 
-            // or we could implementing immediate retry logic here.
-            // For now, we count it as failed for this run.
+                item.lastError = errorMessage;
+                item.status = 'failed';
+                // If we haven't hit max retries, it stays 'failed' but might be picked up next run 
+                // or we could implementing immediate retry logic here.
+                // For now, we count it as failed for this run.
 
-            if (item.attempts >= (this.config.maxRetries || 3)) {
-                this.checkpoint.failedCount++;
+                if (item.attempts >= (this.config.maxRetries || 3)) {
+                    this.checkpoint.failedCount++;
+                }
             }
         } finally {
             this.saveCheckpoint();

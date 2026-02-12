@@ -9,9 +9,11 @@ export interface LoopConfig {
   maxRetries?: number;
   /** Timeout in ms per item. If exceeded, item fails. (default: no timeout) */
   itemTimeoutMs?: number;
+  /** Optional: Direct array of input data instead of loading from a file */
+  inputData?: any[];
 }
 
-export type ItemStatus = 'pending' | 'processing' | 'completed' | 'failed';
+export type ItemStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'awaiting_agent';
 
 export interface BatchItem<T = any> {
   id: string;
@@ -19,6 +21,7 @@ export interface BatchItem<T = any> {
   status: ItemStatus;
   attempts: number;
   lastError?: string;
+  pendingPrompt?: any;
   output?: any;
   logs?: string[];
 }

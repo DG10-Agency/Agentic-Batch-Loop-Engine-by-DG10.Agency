@@ -10,6 +10,13 @@ export interface LLMConfig {
     model?: string;
 }
 
+export class AgentBridgeError extends Error {
+    constructor(public messages: any[]) {
+        super('AGENT_BRIDGE_REQUIRED');
+        this.name = 'AgentBridgeError';
+    }
+}
+
 export class LLMClient {
     private apiKey: string;
     private baseURL: string;
@@ -39,6 +46,13 @@ export class LLMClient {
     }
 
     async chat(messages: { role: string; content: string }[], retries = 3): Promise<string> {
+        // --- NATIVE AGENT BRIDGE ---
+        // If no API key is found, and we are running inside an AI Agent environment,
+        // we throw a special error that the LoopEngine catches to mark the item as 'awaiting_agent'.
+        if (!this.apiKey) {
+            throw new AgentBridgeError(messages);
+        }
+
         const url = new URL(`${this.baseURL}/chat/completions`);
 
         const body = JSON.stringify({
