@@ -1,4 +1,5 @@
 import * as https from 'https';
+import * as dotenv from 'dotenv';
 
 export interface LLMConfig {
     /** Override the API Key. Defaults to process.env.OPENAI_API_KEY, ANTHROPIC_API_KEY, etc. */
@@ -15,6 +16,9 @@ export class LLMClient {
     private model: string;
 
     constructor(config: LLMConfig = {}) {
+        // Load .env from the project root (where the command is run)
+        dotenv.config();
+
         // Automatically detect environment credentials
         this.apiKey = config.apiKey ||
             process.env.OPENAI_API_KEY ||
