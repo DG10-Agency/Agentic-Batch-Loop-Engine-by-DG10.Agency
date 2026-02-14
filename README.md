@@ -9,44 +9,43 @@ AI Agents are brilliant at single tasks but fragile at scale. When you ask an ag
 - **Fragility**: A single API error crashing the entire batch.
 
 ## 🛡️ The Solution
-**Agentic Loop Engine** is a lightweight, drop-in runtime that gives your agent a **Resilient Memory**. It manages the "boring" parts of batch processing so your agent can focus on the comprehensive logic.
+**Agentic Loop Engine** is a lightweight, host-native runtime that gives your agent a **Resilient Memory**. It transforms the Agentic experience from a "failable" single-step action into a rock-solid, multi-step **Discover → Apply → Verify → Cleanup** lifecycle.
 
 ### Key Features
-*   🚀 **Performance First**: Zero timeouts, zero memory leaks. Built for 1,000+ items.
-*   🧠 **Prompt Library**: [100+ Starter Scenarios](file:///d:/Experiments/.agent/skills/loop-engine/SCENARIOS.md) for Security, SEO, and scaling.
-*   🤖 **AI Native**: Works with your Agent's quota. No API keys required.
-*   🛡️ **Atomic & Safe**: Workers fail? The engine retries. You stop it? It resumes from the exact same spot.
-*   📂 **Smart Scanner**: Intelligently build your batch lists from project files.
+*   🚀 **Performance First**: Zero timeouts, zero memory leaks. Built for 10,000+ items.
+*   🧠 **Intent-Aware Discovery**: Use `contentPatterns` to find only the files that matter (e.g., only components using `<Button />`).
+*   🔭 **Multi-Perspective Lenses**: Built-in scanners for **Developer** (Source), **Owner** (Secrets/Infra), and **User** (SEO/Assets).
+*   🤖 **AI Native**: Built-in Agent-Bridge allows using your Agent's quota. No API keys required.
+*   🛡️ **Atomic & Safe**: If a worker fails, the engine retries. If the process stops, it resumes from the exact same spot.
+*   🧹 **Cleanup Signal**: Automatically flags temporary files for cleanup after 100% successful runs.
 
 ---
 
-## 📦 Installation
+## ⚡ Quick Start (The Host-Native Way)
 
-This is designed to be a **Drop-in Skill** for any AI Agent project.
+The Loop Engine is a **Zero-Dependency** skill. It uses only Node.js built-ins and runs using your project's existing environment.
 
-### Option A: Install as a Git Submodule (Recommended)
-Use this if you already have an Agent set up.
-
-```bash
-# Run this from your project root
-git submodule add https://github.com/DG10-Agency/Agentic-Batch-Loop-Engine-by-DG10.Agency.git .agent/skills/batch-loop-engine
-
-# Then build the skill
-cd .agent/skills/batch-loop-engine
-npm install
-npm run build
-```
-
-### Option B: Clone Directly
-If you just want the code and don't care about updates.
+### 1. Installation
+Clone this skill into your project's `.agent/skills/` directory.
 
 ```bash
+# In your project root
 mkdir -p .agent/skills
 git clone https://github.com/DG10-Agency/Agentic-Batch-Loop-Engine-by-DG10.Agency.git .agent/skills/batch-loop-engine
-cd .agent/skills/batch-loop-engine
-npm install
-npm run build
+# NO npm install needed inside the skill!
 ```
+
+### 2. The 5-Step Workflow
+The engine is designed to follow this lifecycle:
+
+1.  **UNDERSTAND**: Identify what needs to change (e.g., "All components with `<Button />`").
+2.  **DISCOVER**: Generate your batch list using the `scanner`.
+    ```typescript
+    const targets = scanProject({ rootDir: '.', contentPatterns: ['<Button'] });
+    ```
+3.  **APPLY**: Run the engine with your modification worker.
+4.  **VERIFY**: Re-scan to confirm the intent was achieved.
+5.  **CLEANUP**: Offer to delete `data.json` and `checkpoint.json` once done.
 
 ---
 
@@ -55,17 +54,16 @@ npm run build
 ### 1. The Item
 The unit of work. Anything that can be serialized to JSON.
 ```typescript
-{ id: "item-1", data: { url: "https://google.com" } }
+{ id: "item-1", data: { filePath: "src/button.ts", matchedPatterns: ["<Button"] } }
 ```
 
 ### 2. The Worker
-A pure function that takes **one item** and processes it. It should be stateless and idempotent.
-```typescript
-type WorkerFunction = (item: T, context: WorkerContext) => Promise<any>;
-```
+A function that takes **one item** and processes it. Best practices:
+- **Idempotent**: Safe to run twice.
+- **Contextual**: Uses `ctx.log()` for an audit trail per file.
 
 ### 3. The Engine
-The orchestrator that manages the queue, retries, and state file.
+The orchestrator. It manages the queue, retries, and the state file.
 
 ---
 

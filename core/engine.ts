@@ -91,7 +91,24 @@ export class LoopEngine<T = any> {
 
         this.logger.log('Job finished.');
         const awaiting = this.checkpoint.items.filter(i => i.status === 'awaiting_agent').length;
-        this.logger.log(`Completed: ${this.checkpoint.completedCount}, Failed: ${this.checkpoint.failedCount}, Awaiting Agent: ${awaiting}`);
+        const totalItems = this.checkpoint.items.length;
+        const completed = this.checkpoint.completedCount;
+
+        this.logger.log(`Completed: ${completed}, Failed: ${this.checkpoint.failedCount}, Awaiting Agent: ${awaiting}`);
+
+        // CLEANUP SIGNALING
+        if (completed === totalItems && totalItems > 0) {
+            this.logger.log('✅ All items completed successfully.');
+            this.checkpoint.cleanupReady = true;
+            this.checkpoint.cleanupFiles = [
+                this.config.inputPath,
+                this.config.checkpointPath,
+                path.join(path.dirname(this.config.checkpointPath), `${path.basename(this.config.checkpointPath, '.json')}.log`)
+            ].filter(Boolean) as string[];
+
+            this.logger.log(`🧹 Cleanup ready for: ${this.checkpoint.cleanupFiles.join(', ')}`);
+            this.saveCheckpoint();
+        }
 
         if (awaiting > 0) {
             this.logger.log(`📢 ${awaiting} items are waiting for AI thinking. I (the Agent) will fulfill them now.`);

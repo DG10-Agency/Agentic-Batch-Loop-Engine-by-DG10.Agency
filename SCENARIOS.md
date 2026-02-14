@@ -32,7 +32,7 @@ PHASE 1 (Intelligence):
 Search Google for "CVE-2025-55182 technical exploitation details" and "Next.js Flight protocol unsafe deserialization patterns". Identify the exact HTTP request headers (e.g., x-nextjs-data) used in the attack.
 
 PHASE 2 (Discovery): 
-Use 'scanner.ts' to map all 'src/app' routes. Sort by 'CRITICAL' for any file containing 'use server' or exported as an 'async function'.
+Use the 'Intent-Aware' scanner with `contentPatterns: ['use server', 'dangerouslySetInnerHTML']` and `perspectives: ['developer', 'owner']`. This targets only the files that carry the actual risk signature, skipping the noise.
 
 PHASE 3 (Loop Engine Execution): 
 Write a worker that:
@@ -40,8 +40,8 @@ Write a worker that:
 2. Semantic Analysis: Use the LLM to identify if any Server Action accepts deserialized objects without strict Zod schema validation.
 3. Patching: If a vulnerability is found, generate a 'Zod-wrapped' version of the function as a remediation proposal.
 
-PHASE 4 (Persistence):
-Log findings to 'security-audit-report.json'. Ensure every file is checked regardless of timeouts. Use the Agent's native quota for deep semantic analysis.
+PHASE 4 (Verification & Cleanup):
+Run a verification scan. If success=100%, trigger the 'cleanupReady' signal and offer the developer to remove the audit logs.
 ```
 
 ### Scenario 002: Supabase RLS Leak Prevention (CVE-2025-48757)
@@ -61,22 +61,19 @@ Log findings to 'security-audit-report.json'. Ensure every file is checked regar
 Role: Growth Engineering Lead.
 Objective: Execute a project-wide SEO 'Golden Standard' upgrade.
 
-PHASE 1 (Route Mapping): 
-Scan 'src/app/' to extract all metadata.title and metadata.description tags. Generate a JSON index of active landing pages.
+PHASE 1 (Intelligence): 
+Research the 'Brand Voice' in `docs/brand-voice.md`. Use Perplexity to find the top 3 ranking URLs for the primary keyword and extract their semantic structure.
 
-PHASE 2 (Competitive Research Loop): 
-For each page in the Loop Engine:
-1. SERP Drilldown: Use Perplexity to find the top 3 ranking URLs for the primary keyword. Extract their H1-H3 hierarchy.
-2. LSI Discovery: Identify 'Semantic Gaps' (keywords competitors use that we don't).
-3. Brand Voice Matrix: Read 'docs/brand-voice.md'. Check for adherence to our 'Professional yet Energetic' tone.
+PHASE 2 (Route Mapping): 
+Use the scanner with `perspectives: ['user']` and `extensions: ['.tsx', '.md']`. This ensures we catch public-facing content AND hidden metadata files.
 
 PHASE 3 (Worker Generation):
-1. Rewrite the Meta Tags to surpass competitor CTR.
-2. Generate an 'In-Page Content Injection' proposal that adds 300 words of missing LSI-rich content.
-3. Validate structured data (JSON-LD) for zero errors.
+1. SERP Drilldown: For each page, identify 'Semantic Gaps' (keywords competitors use that we don't).
+2. Content Injection: Generate a proposal that adds 300 words of missing LSI-rich content.
+3. Metadata Fix: Rewrite Meta Tags to surpass competitor CTR.
 
-PHASE 4 (Persistence):
-Output a structured 'seo-migration-plan.json'. The engine ensures that if the competitor's 50th page times out, we resume and finish the full 100-page audit.
+PHASE 4 (Verification):
+Confirm structured data (JSON-LD) for zero errors. Signal success for final cleanup.
 ```
 
 ---
@@ -104,18 +101,21 @@ Output a structured 'seo-migration-plan.json'. The engine ensures that if the co
 Role: Senior Staff Engineer.
 Objective: Evacuate untyped legacy modules to Strict TypeScript.
 
-PHASE 1 (Structural Audit): 
-Use 'scanner.ts' to find all '.js' and '.jsx' files. Research common type-safety pitfalls when migrating from 'any' to specific interfaces in Next.js 15.
+PHASE 1 (Strategic Analysis): 
+Research common type-safety pitfalls when migrating from 'any' to specific interfaces in Next.js 15.
 
-PHASE 2 (Worker Logic): 
+PHASE 2 (Structural Audit): 
+Use the scanner with `contentPatterns: [': any', '() => {']` and `perspectives: ['developer']`. This focuses on the exact points of failure in the legacy codebase.
+
+PHASE 3 (Worker Logic): 
 Write a Loop Engine worker that:
-1. AST Extraction: Reads the file and identifies all function signatures and exported constants.
-2. Type Generation: Uses the Agent to 'Reason' about the data shapes and generate a 'types.ts' companion for each module.
-3. Refactoring: Replaces 'any' and implicit types with the newly generated interfaces.
-4. Validation: Runs 'tsc --noEmit' on the modified file to ensure 0 errors.
+1. AST Extraction: Identifies function signatures and exported constants.
+2. Type Generation: Uses the Agent to 'Reason' about data shapes and generate a 'types.ts' companion.
+3. Refactoring: Replaces 'any' with the newly generated interfaces.
+4. Validation: Runs 'tsc --noEmit' on the modified file.
 
-PHASE 3 (Reporting):
-The engine logs every type error encountered during the swap. Generate a 'migration-health-score.csv' as the final artifact.
+PHASE 4 (Reporting):
+The engine logs every type error encountered. Generate a 'migration-health-score.csv' and trigger the cleanup signal on 100% success.
 ```
 
 ### Scenario 031: The "Perf-Guard" Lighthouse Loop
